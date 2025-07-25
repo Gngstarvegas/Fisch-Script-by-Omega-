@@ -1,6 +1,6 @@
--- Fisch Script by Omega V13.5.8
+-- Fisch Script by Omega V14.0.0 - TITANESQUE EDITION
 -- Compatible with Delta, Fluxus, Cryptic, Arceus X, Codex
--- Improved with enhanced security and optimization
+-- Completely rewritten with enhanced functionality and security
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,23 +9,35 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local StarterGui = game:GetService("StarterGui")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 
--- [ 🛡️ SECURITY & DEBUG 🛡️ ]
+-- [ 🛡️ ENHANCED SECURITY & DEBUG 🛡️ ]
 local security = {
     VerifiedEvents = {},
     FailedEvents = {},
     LastEventCheck = 0,
-    EventCheckCooldown = 60, -- Seconds between re-checking failed events
+    EventCheckCooldown = 45,
     RunningTasks = {},
     MaxConsecutiveFailures = 3,
-    DebugMode = false
+    DebugMode = false,
+    AntiDetectionEnabled = true,
+    LastActionTime = 0,
+    ActionPattern = {},
+    MaxPatternLength = 20,
+    SecurityLevel = "HIGH", -- LOW, MEDIUM, HIGH
+    BannedEvents = {},
+    EventCallCount = {},
+    MaxEventCallsPerMinute = 30
 }
 
--- [ 🚜 FARMS 🚜 ]
+-- [ 🚜 ENHANCED FARMS 🚜 ]
 local farm = {
     LiveFarmStatus = false,
     EnableFarming = false,
@@ -37,21 +49,35 @@ local farm = {
     AutoSell = false,
     FreezeYourself = false,
     CompleteReelMinigame = false,
-    LegitCastMode = false,
-    CastDelay = 1,
-    ShakeDelay = 1,
-    ReelDelay = 1,
+    LegitCastMode = true,
+    CastDelay = 2.5,
+    ShakeDelay = 1.8,
+    ReelDelay = 2.2,
     PreserveCatch = false,
     AutoEquipRod = false,
     AutoAppraise = false,
-    AutoAppraiseWeight = 0,
+    AutoAppraiseWeight = 2.5,
     AutoMutations = false,
-    -- Random delays to prevent pattern detection
-    MinRandomDelay = 0.2,
-    MaxRandomDelay = 0.5
+    MinRandomDelay = 0.5,
+    MaxRandomDelay = 1.5,
+    SmartFarming = true,
+    FarmingStats = {
+        TotalCasts = 0,
+        TotalCatches = 0,
+        TotalSells = 0,
+        StartTime = tick(),
+        LastCatchTime = 0,
+        BestCatch = nil,
+        TotalEarnings = 0
+    },
+    RodTypes = {"Flimsy Rod", "Plastic Rod", "Lucky Rod", "Kings Rod", "Trident Rod"},
+    CurrentRodIndex = 1,
+    AutoUpgradeRod = false,
+    FishingPower = 100,
+    OptimalCastPower = 0.85
 }
 
--- [ 🦀 CRAB FEATURES 🦀 ]
+-- [ 🦀 ENHANCED CRAB FEATURES 🦀 ]
 local crab = {
     AutoBuyCrabCages = false,
     SpamCrabCages = false,
@@ -60,106 +86,237 @@ local crab = {
     AutoUseBait = false,
     AutoUseCustomBait = false,
     AutoUseAllBait = false,
-    BaitChangeInterval = 5,
-    SafeModeCollect = false
+    BaitChangeInterval = 8,
+    SafeModeCollect = true,
+    CrabCageLimit = 10,
+    CrabStats = {
+        CagesPlaced = 0,
+        CagesCollected = 0,
+        CrabsCaught = 0,
+        TotalCrabValue = 0
+    },
+    BaitTypes = {"Magnet", "Rapid Catcher", "Sparkling Lure", "Frost Bite", "Truffle Worm"},
+    CurrentBaitIndex = 1,
+    AutoRotateBait = false,
+    CollectionRadius = 100
 }
 
--- [ 🔮 TELEPORTS 🔮 ]
+-- [ 🔮 ENHANCED TELEPORTS 🔮 ]
 local teleports = {
     DiscoverAllPlaces = false,
-    TeleportCooldown = 5,
-    LastTeleportTime = 0
+    TeleportCooldown = 3,
+    LastTeleportTime = 0,
+    Places = {
+        "Ocean", "Deep Ocean", "Depths", "Vertigo", "Sunstone Island", 
+        "Moosewood", "Roslit Bay", "Snowcap Island", "Mushgrove Swamp",
+        "Forsaken Shores", "Ancient Isles", "Statue Of Sovereignty"
+    },
+    CurrentPlaceIndex = 1,
+    AutoTeleportFarming = false,
+    TeleportQueue = {},
+    SafeTeleport = true,
+    TeleportStats = {
+        TotalTeleports = 0,
+        LastTeleportLocation = nil,
+        FavoriteSpots = {}
+    }
 }
 
--- [ 📣 WEBHOOK ALERTS 📣 ]
+-- [ 📣 ENHANCED WEBHOOK ALERTS 📣 ]
 local webhook = {
     UseWebhooking = false,
     WebhookURL = "",
     UserIDPing = "",
-    WebhookInterval = 600,
+    WebhookInterval = 300,
     MythicalTracking = false,
     MythicalAlerts = false,
     FishCaughtTracking = false,
     LevelsTracking = false,
-    LastWebhookSent = 0
+    LastWebhookSent = 0,
+    EmbedColor = 3447003,
+    WebhookStats = {
+        TotalSent = 0,
+        LastSentTime = 0,
+        QueuedMessages = {}
+    },
+    AlertTypes = {
+        Mythical = true,
+        Legendary = true,
+        Rare = false,
+        LevelUp = true,
+        Error = true,
+        Achievement = true
+    }
 }
 
--- [ ⚙ SETTINGS ⚙ ]
+-- [ ⚙ ENHANCED SETTINGS ⚙ ]
 local settings = {
     Theme = "Dark",
-    UITransparency = 0.5,
+    UITransparency = 0.3,
     UIKeybind = Enum.KeyCode.LeftControl,
     AutoLoadConfig = false,
-    SafeMode = true, -- Enable more conservative delays to avoid detection
+    SafeMode = true,
+    ConfigVersion = "14.0.0",
+    AutoSaveConfig = true,
+    ConfigSaveInterval = 300,
+    PerformanceMode = false,
+    AudioEnabled = true,
+    NotificationsEnabled = true,
+    AutoUpdate = true,
+    Language = "EN"
 }
 
--- [ 🕹 UI NAVIGATION 🕹 ]
+-- [ 🕹 ENHANCED UI NAVIGATION 🕹 ]
 local ui = {
     NavigationEnabled = false,
     FocusedElement = nil,
     Elements = {},
-    FeedbackDuration = 0.3,
+    FeedbackDuration = 0.4,
     Colors = {
         Normal = Color3.fromRGB(255, 255, 255),
         Focused = Color3.fromRGB(0, 170, 255),
         Active = Color3.fromRGB(85, 255, 127),
-        Error = Color3.fromRGB(255, 85, 85)
+        Error = Color3.fromRGB(255, 85, 85),
+        Warning = Color3.fromRGB(255, 200, 0),
+        Success = Color3.fromRGB(0, 255, 0)
     },
     Sounds = {
-        Click = {ID = "rbxassetid://6895079853", Volume = 0.5},
-        Hover = {ID = "rbxassetid://6895079733", Volume = 0.2},
-        Success = {ID = "rbxassetid://6895079773", Volume = 0.5},
-        Error = {ID = "rbxassetid://6895079812", Volume = 0.5}
-    }
+        Click = {ID = "rbxassetid://6895079853", Volume = 0.3},
+        Hover = {ID = "rbxassetid://6895079733", Volume = 0.1},
+        Success = {ID = "rbxassetid://6895079773", Volume = 0.4},
+        Error = {ID = "rbxassetid://6895079812", Volume = 0.4},
+        Notification = {ID = "rbxassetid://6895079799", Volume = 0.3}
+    },
+    Notifications = {},
+    MaxNotifications = 5,
+    NotificationDuration = 3
 }
 
--- [ 🛠️ HELPER FUNCTIONS 🛠️ ]
+-- [ 🛠️ ENHANCED HELPER FUNCTIONS 🛠️ ]
 local function debugLog(message, ...)
     if security.DebugMode then
-        print("[Fisch Debug] " .. string.format(message, ...))
+        local timestamp = os.date("%H:%M:%S")
+        print(string.format("[%s][Fisch Debug] %s", timestamp, string.format(message, ...)))
     end
 end
 
 local function getRandomDelay(min, max)
+    min = min or farm.MinRandomDelay
+    max = max or farm.MaxRandomDelay
     return min + (max - min) * math.random()
+end
+
+local function getRealisticDelay(baseDelay, variance)
+    variance = variance or 0.3
+    local minDelay = baseDelay * (1 - variance)
+    local maxDelay = baseDelay * (1 + variance)
+    return getRandomDelay(minDelay, maxDelay)
 end
 
 local function safeWait(duration)
     local adjustedDuration = duration
     if settings.SafeMode then
-        -- Add a small random factor to avoid predictable patterns
-        adjustedDuration = duration + getRandomDelay(farm.MinRandomDelay, farm.MaxRandomDelay)
+        adjustedDuration = getRealisticDelay(duration, 0.2)
     end
+    
+    -- Add anti-pattern detection
+    if security.AntiDetectionEnabled then
+        local currentTime = tick()
+        table.insert(security.ActionPattern, currentTime)
+        
+        if #security.ActionPattern > security.MaxPatternLength then
+            table.remove(security.ActionPattern, 1)
+        end
+        
+        -- Check for suspicious patterns
+        if #security.ActionPattern >= 5 then
+            local intervals = {}
+            for i = 2, #security.ActionPattern do
+                table.insert(intervals, security.ActionPattern[i] - security.ActionPattern[i-1])
+            end
+            
+            local avgInterval = 0
+            for _, interval in ipairs(intervals) do
+                avgInterval = avgInterval + interval
+            end
+            avgInterval = avgInterval / #intervals
+            
+            -- If intervals are too consistent, add extra delay
+            local consistency = 0
+            for _, interval in ipairs(intervals) do
+                if math.abs(interval - avgInterval) < 0.1 then
+                    consistency = consistency + 1
+                end
+            end
+            
+            if consistency / #intervals > 0.7 then
+                adjustedDuration = adjustedDuration + getRandomDelay(0.5, 2.0)
+                debugLog("Anti-pattern delay added: %.2f seconds", adjustedDuration - duration)
+            end
+        end
+    end
+    
     task.wait(adjustedDuration)
     return adjustedDuration
 end
 
 local function playSound(soundType)
+    if not settings.AudioEnabled then return end
+    
     local sound = Instance.new("Sound")
     sound.SoundId = ui.Sounds[soundType].ID
     sound.Volume = ui.Sounds[soundType].Volume
     sound.Parent = PlayerGui
     sound:Play()
-    game:GetService("Debris"):AddItem(sound, 2)
+    
+    game:GetService("Debris"):AddItem(sound, 3)
     return sound
 end
 
-local function showFeedback(element, status)
+local function showNotification(title, message, duration, color)
+    if not settings.NotificationsEnabled then return end
+    
+    duration = duration or ui.NotificationDuration
+    color = color or ui.Colors.Normal
+    
+    local notification = {
+        Title = title,
+        Message = message,
+        Duration = duration,
+        Color = color,
+        StartTime = tick()
+    }
+    
+    table.insert(ui.Notifications, notification)
+    
+    -- Remove old notifications
+    while #ui.Notifications > ui.MaxNotifications do
+        table.remove(ui.Notifications, 1)
+    end
+    
+    debugLog("Notification: %s - %s", title, message)
+    playSound("Notification")
+end
+
+local function showFeedback(element, status, message)
     if not element then return end
     
     local originalColor = element.BackgroundColor3
     local originalTransparency = element.BackgroundTransparency
-    local targetColor = status == "success" and ui.Colors.Active or ui.Colors.Error
+    local targetColor = ui.Colors[status] or ui.Colors.Normal
     
     local tweenInfo = TweenInfo.new(ui.FeedbackDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local tween = TweenService:Create(element, tweenInfo, {
         BackgroundColor3 = targetColor,
-        BackgroundTransparency = originalTransparency * 0.5 -- Reduce transparency for better visibility
+        BackgroundTransparency = originalTransparency * 0.3
     })
     
     tween:Play()
+    playSound(status == "Active" and "Success" or "Error")
     
-    playSound(status == "success" and "Success" or "Error")
+    if message then
+        showNotification("Action", message, 2, targetColor)
+    end
     
     task.delay(ui.FeedbackDuration * 2, function()
         local revertTween = TweenService:Create(element, tweenInfo, {
@@ -170,14 +327,17 @@ local function showFeedback(element, status)
     end)
 end
 
--- [ 🔍 EVENT VERIFICATION 🔍 ]
+-- [ 🔍 ENHANCED EVENT VERIFICATION 🔍 ]
 local function checkEvent(eventName)
-    -- Check if the event was already verified
+    if security.BannedEvents[eventName] then
+        debugLog("Event %s is banned, skipping", eventName)
+        return false
+    end
+    
     if security.VerifiedEvents[eventName] then
         return true
     end
     
-    -- Check if the event failed recently and is on cooldown
     if security.FailedEvents[eventName] then
         local timeSinceLastCheck = tick() - security.LastEventCheck
         if timeSinceLastCheck < security.EventCheckCooldown then
@@ -185,7 +345,6 @@ local function checkEvent(eventName)
         end
     end
     
-    -- Try to find the event
     local event = ReplicatedStorage:FindFirstChild(eventName)
     security.LastEventCheck = tick()
     
@@ -195,9 +354,14 @@ local function checkEvent(eventName)
         debugLog("Event %s verified successfully", eventName)
         return true
     else
-        -- Store failed event and increment failure counter
         security.FailedEvents[eventName] = (security.FailedEvents[eventName] or 0) + 1
         debugLog("Event %s not found (Failure count: %d)", eventName, security.FailedEvents[eventName])
+        
+        if security.FailedEvents[eventName] >= security.MaxConsecutiveFailures then
+            security.BannedEvents[eventName] = true
+            debugLog("Event %s banned due to consecutive failures", eventName)
+        end
+        
         return false
     end
 end
@@ -208,37 +372,81 @@ local function safeFireServer(eventName, ...)
         return false
     end
     
+    -- Rate limiting
+    local currentTime = tick()
+    security.EventCallCount[eventName] = security.EventCallCount[eventName] or {}
+    
+    -- Clean old entries
+    local oneMinuteAgo = currentTime - 60
+    for i = #security.EventCallCount[eventName], 1, -1 do
+        if security.EventCallCount[eventName][i] < oneMinuteAgo then
+            table.remove(security.EventCallCount[eventName], i)
+        end
+    end
+    
+    -- Check rate limit
+    if #security.EventCallCount[eventName] >= security.MaxEventCallsPerMinute then
+        debugLog("Rate limit exceeded for event: %s", eventName)
+        return false
+    end
+    
     local event = ReplicatedStorage:FindFirstChild(eventName)
     local args = {...}
     
-    -- Use pcall to safely execute FireServer
     local success, errorMsg = pcall(function()
         event:FireServer(unpack(args))
     end)
     
-    if not success then
+    if success then
+        table.insert(security.EventCallCount[eventName], currentTime)
+        debugLog("Successfully fired %s with %d arguments", eventName, #args)
+        return true
+    else
         debugLog("FireServer failed for %s: %s", eventName, errorMsg)
         return false
     end
-    
-    return true
 end
 
--- [ 🎮 GAME FUNCTIONS 🎮 ]
+-- [ 🎮 ENHANCED GAME FUNCTIONS 🎮 ]
 function CastRod(power)
-    return safeFireServer("CastRodEvent", power)
+    power = power or farm.OptimalCastPower
+    if farm.LegitCastMode then
+        power = getRandomDelay(0.75, 0.95)
+    end
+    
+    local success = safeFireServer("CastRodEvent", power)
+    if success then
+        farm.FarmingStats.TotalCasts = farm.FarmingStats.TotalCasts + 1
+        debugLog("Cast rod with power: %.2f", power)
+    end
+    return success
 end
 
 function ShakeRod()
-    return safeFireServer("ShakeRodEvent")
+    local success = safeFireServer("ShakeRodEvent")
+    if success then
+        debugLog("Shook rod successfully")
+    end
+    return success
 end
 
 function ReelFish()
-    return safeFireServer("ReelFishEvent")
+    local success = safeFireServer("ReelFishEvent")
+    if success then
+        farm.FarmingStats.TotalCatches = farm.FarmingStats.TotalCatches + 1
+        farm.FarmingStats.LastCatchTime = tick()
+        debugLog("Reeled fish successfully")
+    end
+    return success
 end
 
 function BuyCrabCage()
-    return safeFireServer("BuyCrabCageEvent")
+    local success = safeFireServer("BuyCrabCageEvent")
+    if success then
+        crab.CrabStats.CagesPlaced = crab.CrabStats.CagesPlaced + 1
+        debugLog("Bought crab cage")
+    end
+    return success
 end
 
 function TeleportToPlace(placeName)
@@ -251,56 +459,262 @@ function TeleportToPlace(placeName)
     local success = safeFireServer("TeleportToPlaceEvent", placeName)
     if success then
         teleports.LastTeleportTime = currentTime
+        teleports.TeleportStats.TotalTeleports = teleports.TeleportStats.TotalTeleports + 1
+        teleports.TeleportStats.LastTeleportLocation = placeName
+        debugLog("Teleported to: %s", placeName)
     end
     return success
 end
 
 function CollectCrabCage(cageId)
-    return safeFireServer("CollectCrabCageEvent", cageId)
+    local success = safeFireServer("CollectCrabCageEvent", cageId)
+    if success then
+        crab.CrabStats.CagesCollected = crab.CrabStats.CagesCollected + 1
+        debugLog("Collected cage: %s", cageId)
+    end
+    return success
 end
 
 function SellFish()
-    return safeFireServer("SellFishEvent")
+    local success = safeFireServer("SellFishEvent")
+    if success then
+        farm.FarmingStats.TotalSells = farm.FarmingStats.TotalSells + 1
+        debugLog("Sold fish")
+    end
+    return success
 end
 
 function AppraiseFish(fishId)
-    return safeFireServer("AppraiseFishEvent", fishId)
+    local success = safeFireServer("AppraiseFishEvent", fishId)
+    if success then
+        debugLog("Appraised fish: %s", fishId)
+    end
+    return success
 end
 
-function EquipRod()
-    return safeFireServer("EquipRodEvent")
+function EquipRod(rodType)
+    rodType = rodType or farm.RodTypes[farm.CurrentRodIndex]
+    local success = safeFireServer("EquipRodEvent", rodType)
+    if success then
+        debugLog("Equipped rod: %s", rodType)
+    end
+    return success
 end
 
+-- [ 🦀 ENHANCED CRAB CAGE DETECTION 🦀 ]
 local function findCageIds()
     local cages = {}
-    -- Implementation would depend on how crab cages are stored in the game
-    -- This is a placeholder
+    local playerName = Player.Name
+    
+    -- Method 1: Check workspace for crab cage models
     for _, obj in pairs(Workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name:find("CrabCage") then
-            table.insert(cages, obj:GetAttribute("ID") or obj.Name)
+        if obj:IsA("Model") and obj.Name:lower():find("crab") then
+            local ownerValue = obj:FindFirstChild("Owner")
+            if ownerValue and ownerValue.Value == playerName then
+                local cageId = obj:GetAttribute("CageID") or obj:GetAttribute("ID") or obj.Name
+                table.insert(cages, cageId)
+                debugLog("Found crab cage: %s", cageId)
+            end
         end
     end
+    
+    -- Method 2: Check player's inventory/data
+    local playerData = ReplicatedStorage:FindFirstChild("PlayerData")
+    if playerData then
+        local myData = playerData:FindFirstChild(playerName)
+        if myData then
+            local crabCages = myData:FindFirstChild("CrabCages")
+            if crabCages then
+                for _, cage in pairs(crabCages:GetChildren()) do
+                    if cage:IsA("StringValue") or cage:IsA("IntValue") then
+                        table.insert(cages, cage.Value)
+                        debugLog("Found crab cage from data: %s", cage.Value)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Method 3: Check GUI for crab cage information
+    local crabCageGui = PlayerGui:FindFirstChild("CrabCageGui")
+    if crabCageGui then
+        for _, element in pairs(crabCageGui:GetDescendants()) do
+            if element:IsA("TextLabel") and element.Text:find("Cage") then
+                local cageId = element.Text:match("Cage (%d+)")
+                if cageId then
+                    table.insert(cages, cageId)
+                    debugLog("Found crab cage from GUI: %s", cageId)
+                end
+            end
+        end
+    end
+    
+    debugLog("Total crab cages found: %d", #cages)
     return cages
 end
 
--- [ 🧵 TASK HANDLING 🧵 ]
+-- [ 📊 ENHANCED FISH INVENTORY SYSTEM 📊 ]
+local function getFishInventory()
+    local inventory = {}
+    local playerName = Player.Name
+    
+    -- Check player data for fish inventory
+    local playerData = ReplicatedStorage:FindFirstChild("PlayerData")
+    if playerData then
+        local myData = playerData:FindFirstChild(playerName)
+        if myData then
+            local fishInventory = myData:FindFirstChild("FishInventory") or myData:FindFirstChild("Inventory")
+            if fishInventory then
+                for _, fish in pairs(fishInventory:GetChildren()) do
+                    if fish:IsA("Folder") or fish:IsA("Configuration") then
+                        local fishData = {
+                            ID = fish.Name,
+                            Weight = fish:FindFirstChild("Weight") and fish.Weight.Value or 0,
+                            Rarity = fish:FindFirstChild("Rarity") and fish.Rarity.Value or "Common",
+                            Value = fish:FindFirstChild("Value") and fish.Value.Value or 0,
+                            Mutation = fish:FindFirstChild("Mutation") and fish.Mutation.Value or false
+                        }
+                        table.insert(inventory, fishData)
+                        debugLog("Found fish: %s (Weight: %.2f, Rarity: %s)", fishData.ID, fishData.Weight, fishData.Rarity)
+                    end
+                end
+            end
+        end
+    end
+    
+    debugLog("Total fish in inventory: %d", #inventory)
+    return inventory
+end
+
+local function shouldAppraiseFish(fishData)
+    if not farm.AutoAppraise then return false end
+    
+    -- Appraise if weight is above threshold
+    if fishData.Weight >= farm.AutoAppraiseWeight then
+        return true
+    end
+    
+    -- Appraise if it's a rare fish
+    if fishData.Rarity == "Legendary" or fishData.Rarity == "Mythical" then
+        return true
+    end
+    
+    -- Appraise if it has mutations
+    if fishData.Mutation then
+        return true
+    end
+    
+    return false
+end
+
+-- [ 📣 ENHANCED WEBHOOK SYSTEM 📣 ]
+local function sendWebhook(title, description, color, fields)
+    if not webhook.UseWebhooking or webhook.WebhookURL == "" then
+        return false
+    end
+    
+    local currentTime = tick()
+    if currentTime - webhook.LastWebhookSent < webhook.WebhookInterval then
+        -- Queue the message for later
+        table.insert(webhook.WebhookStats.QueuedMessages, {
+            title = title,
+            description = description,
+            color = color,
+            fields = fields,
+            timestamp = currentTime
+        })
+        return false
+    end
+    
+    local embed = {
+        title = title,
+        description = description,
+        color = color or webhook.EmbedColor,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%S"),
+        footer = {
+            text = "Fisch Script by Omega v14.0.0"
+        },
+        fields = fields or {}
+    }
+    
+    local data = {
+        embeds = {embed}
+    }
+    
+    -- Add ping if specified
+    if webhook.UserIDPing ~= "" then
+        data.content = "<@" .. webhook.UserIDPing .. ">"
+    end
+    
+    local success, result = pcall(function()
+        return HttpService:PostAsync(webhook.WebhookURL, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+    end)
+    
+    if success then
+        webhook.LastWebhookSent = currentTime
+        webhook.WebhookStats.TotalSent = webhook.WebhookStats.TotalSent + 1
+        webhook.WebhookStats.LastSentTime = currentTime
+        debugLog("Webhook sent successfully: %s", title)
+        return true
+    else
+        debugLog("Failed to send webhook: %s", result)
+        return false
+    end
+end
+
+local function processWebhookQueue()
+    if #webhook.WebhookStats.QueuedMessages == 0 then return end
+    
+    local currentTime = tick()
+    if currentTime - webhook.LastWebhookSent >= webhook.WebhookInterval then
+        local message = table.remove(webhook.WebhookStats.QueuedMessages, 1)
+        sendWebhook(message.title, message.description, message.color, message.fields)
+    end
+end
+
+local function notifyMythicalCatch(fishData)
+    if not webhook.MythicalAlerts then return end
+    
+    local fields = {
+        {name = "Weight", value = string.format("%.2f kg", fishData.Weight), inline = true},
+        {name = "Value", value = string.format("$%d", fishData.Value), inline = true},
+        {name = "Location", value = teleports.TeleportStats.LastTeleportLocation or "Unknown", inline = true}
+    }
+    
+    if fishData.Mutation then
+        table.insert(fields, {name = "Mutation", value = "Yes", inline = true})
+    end
+    
+    sendWebhook("🐟 Mythical Fish Caught!", 
+                string.format("Caught a **%s**!", fishData.ID), 
+                0xFF6B35, fields)
+end
+
+-- [ 🧵 ENHANCED TASK HANDLING 🧵 ]
 local function startTask(taskName, func, interval)
-    -- Stop existing task if running
     if security.RunningTasks[taskName] then
         security.RunningTasks[taskName] = false
     end
     
-    -- Mark this task as running
     security.RunningTasks[taskName] = true
     
-    -- Start task loop
     task.spawn(function()
-        debugLog("Starting task: %s", taskName)
+        debugLog("Starting task: %s (interval: %.2f)", taskName, interval or 0.1)
         while security.RunningTasks[taskName] do
             local success, errorMsg = pcall(func)
             if not success then
                 debugLog("Error in task %s: %s", taskName, errorMsg)
-                showFeedback(PlayerGui:FindFirstChild(taskName.."Button"), "error")
+                local button = PlayerGui:FindFirstChild(taskName.."Button")
+                if button then
+                    showFeedback(button, "Error", "Task error: " .. tostring(errorMsg))
+                end
+                
+                -- Send webhook alert for critical errors
+                if webhook.AlertTypes.Error then
+                    sendWebhook("❌ Task Error", 
+                               string.format("Task **%s** encountered an error: %s", taskName, errorMsg), 
+                               0xFF0000)
+                end
             end
             safeWait(interval or 0.1)
         end
@@ -315,81 +729,123 @@ local function stopTask(taskName)
     end
 end
 
--- [ 🚜 FARMING LOGIC 🚜 ]
+-- [ 🚜 ENHANCED FARMING LOGIC 🚜 ]
 function farmLogic()
     if not farm.EnableFarming then return end
     
-    -- Equip rod if needed
+    -- Smart farming: pause if player is moving
+    if farm.SmartFarming and Humanoid.MoveDirection.Magnitude > 0 then
+        debugLog("Player is moving, pausing farming")
+        return
+    end
+    
+    -- Equip optimal rod
     if farm.AutoEquipRod then
-        EquipRod()
+        local bestRod = farm.RodTypes[farm.CurrentRodIndex]
+        if farm.AutoUpgradeRod then
+            -- Logic to determine best available rod
+            for i = #farm.RodTypes, 1, -1 do
+                local rodName = farm.RodTypes[i]
+                if EquipRod(rodName) then
+                    farm.CurrentRodIndex = i
+                    break
+                end
+            end
+        else
+            EquipRod(bestRod)
+        end
         safeWait(0.5)
     end
     
-    -- Auto cast logic
+    -- Auto cast logic with power optimization
     if farm.AutoCast then
-        local power = farm.LegitCastMode and math.random(70, 100) / 100 or 1
-        local castSuccess = CastRod(power)
-        
-        if castSuccess then
-            debugLog("Cast rod with power: %s", power)
-            showFeedback(PlayerGui:FindFirstChild("CastButton"), "success")
+        local power = farm.OptimalCastPower
+        if farm.LegitCastMode then
+            power = getRandomDelay(0.8, 0.95)
         end
         
-        safeWait(farm.CastDelay)
+        local castSuccess = CastRod(power)
+        if castSuccess then
+            local button = PlayerGui:FindFirstChild("CastButton")
+            if button then
+                showFeedback(button, "Active", "Cast successful")
+            end
+        end
+        
+        safeWait(getRealisticDelay(farm.CastDelay))
     end
     
-    -- Auto shake logic
+    -- Auto shake logic with middle lock
     if farm.AutoShake then
         local shakeSuccess = ShakeRod()
-        
         if shakeSuccess then
-            debugLog("Shook rod")
-            showFeedback(PlayerGui:FindFirstChild("ShakeButton"), "success")
+            local button = PlayerGui:FindFirstChild("ShakeButton")
+            if button then
+                showFeedback(button, "Active", "Shake successful")
+            end
         end
         
-        safeWait(farm.ShakeDelay)
+        safeWait(getRealisticDelay(farm.ShakeDelay))
     end
     
-    -- Auto reel logic
+    -- Auto reel logic with inventory management
     if farm.AutoReel then
         local reelSuccess = ReelFish()
-        
         if reelSuccess then
-            debugLog("Reeled fish")
-            showFeedback(PlayerGui:FindFirstChild("ReelButton"), "success")
+            local button = PlayerGui:FindFirstChild("ReelButton")
+            if button then
+                showFeedback(button, "Active", "Reel successful")
+            end
             
-            -- If we successfully reeled, we might need to sell or appraise
+            -- Post-catch processing
+            safeWait(1) -- Wait for fish to be added to inventory
+            
+            -- Check inventory for new fish
+            local fishInventory = getFishInventory()
+            for _, fishData in ipairs(fishInventory) do
+                -- Appraise valuable fish
+                if shouldAppraiseFish(fishData) then
+                    AppraiseFish(fishData.ID)
+                    safeWait(0.5)
+                end
+                
+                -- Notify mythical catches
+                if fishData.Rarity == "Mythical" then
+                    notifyMythicalCatch(fishData)
+                    farm.FarmingStats.BestCatch = fishData
+                end
+            end
+            
+            -- Auto sell if enabled
             if farm.AutoSell then
-                safeWait(0.5)
+                safeWait(1)
                 SellFish()
             end
-            
-            if farm.AutoAppraise then
-                -- This would need to be connected to the inventory system
-                -- to know which fish to appraise
-                -- Placeholder for now
-            end
         end
         
-        safeWait(farm.ReelDelay)
+        safeWait(getRealisticDelay(farm.ReelDelay))
     end
     
-    -- Add a slight delay to prevent excessive server calls
     safeWait(0.1)
 end
--- [ 🦀 CRAB LOGIC 🦀 ]
+
+-- [ 🦀 ENHANCED CRAB LOGIC 🦀 ]
 function crabLogic()
-    -- Auto buy crab cages
+    -- Smart crab cage buying
     if crab.AutoBuyCrabCages then
-        local buySuccess = BuyCrabCage()
-        
-        if buySuccess then
-            debugLog("Bought crab cage")
-            showFeedback(PlayerGui:FindFirstChild("CrabCageButton"), "success")
+        local currentCages = findCageIds()
+        if #currentCages < crab.CrabCageLimit then
+            local buySuccess = BuyCrabCage()
+            if buySuccess then
+                local button = PlayerGui:FindFirstChild("CrabCageButton")
+                if button then
+                    showFeedback(button, "Active", "Crab cage purchased")
+                end
+            end
         end
     end
     
-    -- Auto collect cages logic
+    -- Auto collect with smart timing
     if crab.AutoCollectCages or crab.CollectAllCrabCages then
         local cageIds = findCageIds()
         
@@ -397,87 +853,93 @@ function crabLogic()
             for _, cageId in ipairs(cageIds) do
                 local collectSuccess = CollectCrabCage(cageId)
                 if collectSuccess then
-                    debugLog("Collected cage: %s", cageId)
-                    showFeedback(PlayerGui:FindFirstChild("CollectCageButton"), "success")
+                    local button = PlayerGui:FindFirstChild("CollectCageButton")
+                    if button then
+                        showFeedback(button, "Active", "Cage collected")
+                    end
                 end
                 
                 if crab.SafeModeCollect then
-                    safeWait(getRandomDelay(1, 2)) -- Add delay between collections
+                    safeWait(getRealisticDelay(2, 0.5))
                 end
             end
         end
     end
     
-    -- Add a delay to prevent excessive server calls
+    -- Auto bait rotation
+    if crab.AutoRotateBait then
+        local currentBait = crab.BaitTypes[crab.CurrentBaitIndex]
+        -- Logic to use bait would go here
+        debugLog("Using bait: %s", currentBait)
+        
+        -- Rotate to next bait
+        crab.CurrentBaitIndex = (crab.CurrentBaitIndex % #crab.BaitTypes) + 1
+    end
+    
     safeWait(0.1)
 end
 
--- [ 🔮 TELEPORT LOGIC 🔮 ]
+-- [ 🔮 ENHANCED TELEPORT LOGIC 🔮 ]
 function teleportLogic()
     if teleports.DiscoverAllPlaces then
-        local places = {"Place1", "Place2", "Place3"} -- Replace with actual places in the game
-        
-        for _, place in ipairs(places) do
+        for _, place in ipairs(teleports.Places) do
             local success = TeleportToPlace(place)
             
             if success then
-                debugLog("Teleported to: %s", place)
-                showFeedback(PlayerGui:FindFirstChild("TeleportButton"), "success")
-                safeWait(3) -- Wait for teleport to complete
+                local button = PlayerGui:FindFirstChild("TeleportButton")
+                if button then
+                    showFeedback(button, "Active", "Teleported to " .. place)
+                end
+                
+                if teleports.SafeTeleport then
+                    safeWait(getRealisticDelay(5, 0.3))
+                end
             else
-                showFeedback(PlayerGui:FindFirstChild("TeleportButton"), "error")
+                local button = PlayerGui:FindFirstChild("TeleportButton")
+                if button then
+                    showFeedback(button, "Error", "Failed to teleport to " .. place)
+                end
             end
         end
         
-        teleports.DiscoverAllPlaces = false -- Turn off after completing
+        teleports.DiscoverAllPlaces = false
     end
     
-        -- Add a delay to prevent excessive server calls
+    -- Auto teleport farming
+    if teleports.AutoTeleportFarming then
+        local currentPlace = teleports.Places[teleports.CurrentPlaceIndex]
+        if TeleportToPlace(currentPlace) then
+            debugLog("Auto-teleport farming: moved to %s", currentPlace)
+            teleports.CurrentPlaceIndex = (teleports.CurrentPlaceIndex % #teleports.Places) + 1
+        end
+    end
+    
     safeWait(0.1)
 end
 
--- [ 🕹 UI NAVIGATION LOGIC 🕹 ]
-function handleNavigation()
-    if not ui.NavigationEnabled then return end
+-- [ 🕹️ ENHANCED UI NAVIGATION 🕹️ ]
+function getAllSelectableElements()
+    local elements = {}
     
-    -- Get all UI elements if we don't have them already
-    if #ui.Elements == 0 then
-        ui.Elements = getAllSelectableElements()
-    end
-    
-    -- Handle focused element highlighting
-    if ui.FocusedElement then
-        -- Apply visual highlight to focused element
-        local originalColor = ui.FocusedElement:GetAttribute("OriginalColor") or ui.Colors.Normal
-        if not ui.FocusedElement:GetAttribute("OriginalColor") then
-            ui.FocusedElement:SetAttribute("OriginalColor", ui.FocusedElement.BackgroundColor3)
-        end
-        
-        -- Create a pulsing effect on the focused element
-        local pulseAmount = (math.sin(tick() * 5) * 0.1) + 0.9
-        ui.FocusedElement.BackgroundColor3 = ui.Colors.Focused:Lerp(ui.Colors.Normal, pulseAmount)
-        
-        -- Reset other elements
-        for _, element in ipairs(ui.Elements) do
-            if element ~= ui.FocusedElement then
-                local origColor = element:GetAttribute("OriginalColor")
-                if origColor then
-                    element.BackgroundColor3 = origColor
+    -- More comprehensive element detection
+    for _, gui in pairs(PlayerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and gui.Enabled then
+            for _, element in pairs(gui:GetDescendants()) do
+                if (element:IsA("TextButton") or element:IsA("ImageButton")) and 
+                   element.Visible and element.Active then
+                    table.insert(elements, element)
                 end
             end
         end
     end
-end
-
--- Function to get all interactive UI elements
-function getAllSelectableElements()
-    local elements = {}
     
-    -- Find all interactive elements in the PlayerGui
-    for _, gui in pairs(PlayerGui:GetChildren()) do
+    -- Also check Core GUI elements
+    local coreGui = game:GetService("CoreGui")
+    for _, gui in pairs(coreGui:GetChildren()) do
         if gui:IsA("ScreenGui") then
             for _, element in pairs(gui:GetDescendants()) do
-                if element:IsA("TextButton") or element:IsA("ImageButton") then
+                if (element:IsA("TextButton") or element:IsA("ImageButton")) and 
+                   element.Visible and element.Active then
                     table.insert(elements, element)
                 end
             end
@@ -488,54 +950,133 @@ function getAllSelectableElements()
     return elements
 end
 
--- [ 🔄 TOGGLE FUNCTIONS 🔄 ]
+function handleNavigation()
+    if not ui.NavigationEnabled then return end
+    
+    if #ui.Elements == 0 then
+        ui.Elements = getAllSelectableElements()
+    end
+    
+    -- Enhanced visual feedback
+    if ui.FocusedElement then
+        local originalColor = ui.FocusedElement:GetAttribute("OriginalColor") or ui.Colors.Normal
+        if not ui.FocusedElement:GetAttribute("OriginalColor") then
+            ui.FocusedElement:SetAttribute("OriginalColor", ui.FocusedElement.BackgroundColor3)
+        end
+        
+        -- Smooth pulsing animation
+        local pulseAmount = (math.sin(tick() * 4) * 0.15) + 0.85
+        ui.FocusedElement.BackgroundColor3 = ui.Colors.Focused:Lerp(ui.Colors.Normal, pulseAmount)
+        
+        -- Add border effect
+        local border = ui.FocusedElement:FindFirstChild("FocusBorder")
+        if not border then
+            border = Instance.new("UIStroke")
+            border.Name = "FocusBorder"
+            border.Color = ui.Colors.Focused
+            border.Thickness = 2
+            border.Parent = ui.FocusedElement
+        end
+        
+        -- Reset other elements
+        for _, element in ipairs(ui.Elements) do
+            if element ~= ui.FocusedElement then
+                local origColor = element:GetAttribute("OriginalColor")
+                if origColor then
+                    element.BackgroundColor3 = origColor
+                end
+                local oldBorder = element:FindFirstChild("FocusBorder")
+                if oldBorder then
+                    oldBorder:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- [ 🔄 ENHANCED TOGGLE FUNCTIONS 🔄 ]
 function toggleFeature(featureName)
-    local success, errorMsg = pcall(function()
+    local success, result = pcall(function()
         -- Farm features
         if featureName == "EnableFarming" then
             farm.EnableFarming = not farm.EnableFarming
             if farm.EnableFarming then
                 startTask("FarmLogic", farmLogic, 0.1)
+                showNotification("Farming", "Auto-farming enabled", 2, ui.Colors.Success)
             else
                 stopTask("FarmLogic")
+                showNotification("Farming", "Auto-farming disabled", 2, ui.Colors.Warning)
             end
             debugLog("Farming %s", farm.EnableFarming and "enabled" or "disabled")
             return true
             
         elseif featureName == "AutoCast" then
             farm.AutoCast = not farm.AutoCast
+            showNotification("AutoCast", farm.AutoCast and "Enabled" or "Disabled", 2)
             debugLog("AutoCast %s", farm.AutoCast and "enabled" or "disabled")
             return true
             
         elseif featureName == "AutoShake" then
             farm.AutoShake = not farm.AutoShake
+            showNotification("AutoShake", farm.AutoShake and "Enabled" or "Disabled", 2)
             debugLog("AutoShake %s", farm.AutoShake and "enabled" or "disabled")
             return true
             
         elseif featureName == "AutoReel" then
             farm.AutoReel = not farm.AutoReel
+            showNotification("AutoReel", farm.AutoReel and "Enabled" or "Disabled", 2)
             debugLog("AutoReel %s", farm.AutoReel and "enabled" or "disabled")
             return true
             
         elseif featureName == "AutoSell" then
             farm.AutoSell = not farm.AutoSell
+            showNotification("AutoSell", farm.AutoSell and "Enabled" or "Disabled", 2)
             debugLog("AutoSell %s", farm.AutoSell and "enabled" or "disabled")
+            return true
+            
+        elseif featureName == "AutoAppraise" then
+            farm.AutoAppraise = not farm.AutoAppraise
+            showNotification("AutoAppraise", farm.AutoAppraise and "Enabled" or "Disabled", 2)
+            debugLog("AutoAppraise %s", farm.AutoAppraise and "enabled" or "disabled")
             return true
             
         -- Crab features
         elseif featureName == "AutoBuyCrabCages" then
             crab.AutoBuyCrabCages = not crab.AutoBuyCrabCages
             if crab.AutoBuyCrabCages then
-                startTask("CrabLogic", crabLogic, 1)
+                startTask("CrabLogic", crabLogic, 2)
+                showNotification("Crab Cages", "Auto-buy enabled", 2, ui.Colors.Success)
             else
                 stopTask("CrabLogic")
+                showNotification("Crab Cages", "Auto-buy disabled", 2, ui.Colors.Warning)
             end
             debugLog("AutoBuyCrabCages %s", crab.AutoBuyCrabCages and "enabled" or "disabled")
             return true
             
         elseif featureName == "CollectAllCrabCages" then
             crab.CollectAllCrabCages = not crab.CollectAllCrabCages
+            showNotification("Collect Cages", crab.CollectAllCrabCages and "Enabled" or "Disabled", 2)
             debugLog("CollectAllCrabCages %s", crab.CollectAllCrabCages and "enabled" or "disabled")
+            return true
+            
+        -- Teleport features
+        elseif featureName == "DiscoverAllPlaces" then
+            teleports.DiscoverAllPlaces = not teleports.DiscoverAllPlaces
+            if teleports.DiscoverAllPlaces then
+                startTask("TeleportLogic", teleportLogic, 3)
+                showNotification("Teleport", "Discovery mode enabled", 2, ui.Colors.Success)
+            else
+                stopTask("TeleportLogic")
+                showNotification("Teleport", "Discovery mode disabled", 2, ui.Colors.Warning)
+            end
+            debugLog("DiscoverAllPlaces %s", teleports.DiscoverAllPlaces and "enabled" or "disabled")
+            return true
+            
+        -- Webhook features
+        elseif featureName == "UseWebhooking" then
+            webhook.UseWebhooking = not webhook.UseWebhooking
+            showNotification("Webhook", webhook.UseWebhooking and "Enabled" or "Disabled", 2)
+            debugLog("UseWebhooking %s", webhook.UseWebhooking and "enabled" or "disabled")
             return true
             
         -- UI features
@@ -543,19 +1084,24 @@ function toggleFeature(featureName)
             ui.NavigationEnabled = not ui.NavigationEnabled
             if ui.NavigationEnabled then
                 ui.Elements = getAllSelectableElements()
-                ui.FocusedElement = ui.Elements[1] -- Focus first element
-                startTask("UINavigation", handleNavigation, 0.03) -- Smooth updates for UI
+                ui.FocusedElement = ui.Elements[1]
+                startTask("UINavigation", handleNavigation, 0.03)
+                showNotification("Navigation", "UI Navigation enabled", 2, ui.Colors.Success)
                 debugLog("UI Navigation Mode: Enabled")
             else
                 stopTask("UINavigation")
-                -- Reset element highlighting
                 if ui.FocusedElement then
                     local origColor = ui.FocusedElement:GetAttribute("OriginalColor")
                     if origColor then
                         ui.FocusedElement.BackgroundColor3 = origColor
                     end
+                    local border = ui.FocusedElement:FindFirstChild("FocusBorder")
+                    if border then
+                        border:Destroy()
+                    end
                     ui.FocusedElement = nil
                 end
+                showNotification("Navigation", "UI Navigation disabled", 2, ui.Colors.Warning)
                 debugLog("UI Navigation Mode: Disabled")
             end
             return true
@@ -563,39 +1109,106 @@ function toggleFeature(featureName)
         -- Settings features
         elseif featureName == "SafeMode" then
             settings.SafeMode = not settings.SafeMode
+            showNotification("Safe Mode", settings.SafeMode and "Enabled" or "Disabled", 2)
             debugLog("SafeMode %s", settings.SafeMode and "enabled" or "disabled")
             return true
             
         elseif featureName == "DebugMode" then
             security.DebugMode = not security.DebugMode
+            showNotification("Debug Mode", security.DebugMode and "Enabled" or "Disabled", 2)
             debugLog("DebugMode %s", security.DebugMode and "enabled" or "disabled")
+            return true
+            
+        elseif featureName == "AntiDetection" then
+            security.AntiDetectionEnabled = not security.AntiDetectionEnabled
+            showNotification("Anti-Detection", security.AntiDetectionEnabled and "Enabled" or "Disabled", 2)
+            debugLog("AntiDetection %s", security.AntiDetectionEnabled and "enabled" or "disabled")
             return true
         end
         
-        -- If we get here, the feature wasn't recognized
         debugLog("Unknown feature: %s", featureName)
         return false
     end)
     
     if not success then
-        debugLog("Error toggling feature %s: %s", featureName, errorMsg)
+        debugLog("Error toggling feature %s: %s", featureName, result)
+        showNotification("Error", "Failed to toggle " .. featureName, 3, ui.Colors.Error)
         return false
     end
+    
+    return result
 end
 
--- [ ⌨️ INPUT HANDLING ⌨️ ]
+-- [ 📊 STATISTICS SYSTEM 📊 ]
+function getStatistics()
+    local currentTime = tick()
+    local sessionTime = currentTime - farm.FarmingStats.StartTime
+    
+    local stats = {
+        SessionTime = sessionTime,
+        TotalCasts = farm.FarmingStats.TotalCasts,
+        TotalCatches = farm.FarmingStats.TotalCatches,
+        TotalSells = farm.FarmingStats.TotalSells,
+        CastsPerHour = farm.FarmingStats.TotalCasts / (sessionTime / 3600),
+        CatchesPerHour = farm.FarmingStats.TotalCatches / (sessionTime / 3600),
+        CatchRate = farm.FarmingStats.TotalCasts > 0 and (farm.FarmingStats.TotalCatches / farm.FarmingStats.TotalCasts) * 100 or 0,
+        CrabCagesPlaced = crab.CrabStats.CagesPlaced,
+        CrabCagesCollected = crab.CrabStats.CagesCollected,
+        TotalTeleports = teleports.TeleportStats.TotalTeleports,
+        WebhooksSent = webhook.WebhookStats.TotalSent,
+        BestCatch = farm.FarmingStats.BestCatch
+    }
+    
+    return stats
+end
+
+function printStatistics()
+    local stats = getStatistics()
+    
+    print("=== FISCH SCRIPT STATISTICS ===")
+    print(string.format("Session Time: %.1f minutes", stats.SessionTime / 60))
+    print(string.format("Total Casts: %d (%.1f/hour)", stats.TotalCasts, stats.CastsPerHour))
+    print(string.format("Total Catches: %d (%.1f/hour)", stats.TotalCatches, stats.CatchesPerHour))
+    print(string.format("Catch Rate: %.1f%%", stats.CatchRate))
+    print(string.format("Total Sells: %d", stats.TotalSells))
+    print(string.format("Crab Cages: %d placed, %d collected", stats.CrabCagesPlaced, stats.CrabCagesCollected))
+    print(string.format("Total Teleports: %d", stats.TotalTeleports))
+    print(string.format("Webhooks Sent: %d", stats.WebhooksSent))
+    if stats.BestCatch then
+        print(string.format("Best Catch: %s (%.2f kg)", stats.BestCatch.ID, stats.BestCatch.Weight))
+    end
+    print("===============================")
+end
+
+-- [ ⌨️ ENHANCED INPUT HANDLING ⌨️ ]
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if gameProcessedEvent then return end
     
     -- UI toggle
     if input.KeyCode == settings.UIKeybind then
-        -- Toggle UI visibility (implementation would depend on your UI setup)
         debugLog("UI toggle hotkey pressed")
+        -- Toggle main UI visibility
     end
     
     -- Navigation toggle
     if input.KeyCode == Enum.KeyCode.Backslash then
         toggleFeature("UINavigationToggle")
+    end
+    
+    -- Statistics hotkey
+    if input.KeyCode == Enum.KeyCode.F3 then
+        printStatistics()
+    end
+    
+    -- Quick toggles
+    if input.KeyCode == Enum.KeyCode.F1 then
+        toggleFeature("EnableFarming")
+    elseif input.KeyCode == Enum.KeyCode.F2 then
+        toggleFeature("AutoBuyCrabCages")
+    elseif input.KeyCode == Enum.KeyCode.F4 then
+        toggleFeature("DiscoverAllPlaces")
+    elseif input.KeyCode == Enum.KeyCode.F5 then
+        toggleFeature("DebugMode")
     end
     
     -- Navigation controls
@@ -617,61 +1230,55 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
             elseif input.KeyCode == Enum.KeyCode.Down then
                 newIndex = (currentIndex + 1 > #ui.Elements) and 1 or currentIndex + 1
             elseif input.KeyCode == Enum.KeyCode.Left then
-                newIndex = (currentIndex - 5 <= 0) and #ui.Elements - (5 - (currentIndex % 5)) or currentIndex - 5
+                newIndex = math.max(1, currentIndex - 5)
             elseif input.KeyCode == Enum.KeyCode.Right then
-                newIndex = (currentIndex + 5 > #ui.Elements) and ((currentIndex + 5) % #ui.Elements) or currentIndex + 5
+                newIndex = math.min(#ui.Elements, currentIndex + 5)
             end
             
-            ui.FocusedElement = ui.Elements[newIndex]
-            playSound("Hover")
+            if ui.Elements[newIndex] then
+                ui.FocusedElement = ui.Elements[newIndex]
+                playSound("Hover")
+            end
+            
         elseif input.KeyCode == Enum.KeyCode.Return and ui.FocusedElement then
-            -- Simulate click on the focused element
             local clickSuccess, clickError = pcall(function()
-                -- Fire mouse click events for the button
                 ui.FocusedElement.MouseButton1Click:Fire()
                 playSound("Click")
-                showFeedback(ui.FocusedElement, "success")
+                showFeedback(ui.FocusedElement, "Active", "Element activated")
             end)
             
             if not clickSuccess then
                 debugLog("Failed to simulate click: %s", clickError)
                 playSound("Error")
-                showFeedback(ui.FocusedElement, "error")
+                showFeedback(ui.FocusedElement, "Error", "Activation failed")
             end
         end
     end
 end)
 
--- [ 🔧 INITIALIZATION 🔧 ]
+-- [ 🔧 ENHANCED INITIALIZATION 🔧 ]
 local function initialize()
-    debugLog("Initializing Fisch Script v13.5.8...")
+    debugLog("Initializing Fisch Script v14.0.0 - Titanesque Edition...")
     
-    -- Verify critical events exist
+    -- Set random seed for better randomization
+    math.randomseed(tick())
+    
+    -- Verify critical events
     local criticalEvents = {
-        "CastRodEvent",
-        "ShakeRodEvent",
-        "ReelFishEvent",
-        "BuyCrabCageEvent",
-        "TeleportToPlaceEvent"
+        "CastRodEvent", "ShakeRodEvent", "ReelFishEvent", "BuyCrabCageEvent",
+        "TeleportToPlaceEvent", "CollectCrabCageEvent", "SellFishEvent",
+        "AppraiseFishEvent", "EquipRodEvent"
     }
     
-    local allEventsFound = true
+    local eventStatus = {}
     for _, eventName in ipairs(criticalEvents) do
-        if not checkEvent(eventName) then
-            allEventsFound = false
-            debugLog("Critical event missing: %s", eventName)
+        eventStatus[eventName] = checkEvent(eventName)
+        if not eventStatus[eventName] then
+            debugLog("Warning: Critical event missing: %s", eventName)
         end
     end
     
-    if not allEventsFound then
-        debugLog("Warning: Some critical events are missing!")
-        -- Could show a warning UI here
-    end
-    
-    -- Set random seed based on time for better randomization
-    math.randomseed(tick())
-    
-    -- Create UI feedback sounds
+    -- Initialize UI sounds
     for name, soundInfo in pairs(ui.Sounds) do
         local sound = Instance.new("Sound")
         sound.SoundId = soundInfo.ID
@@ -680,63 +1287,133 @@ local function initialize()
         sound.Parent = PlayerGui
     end
     
-    -- Load user config if enabled
+    -- Start periodic tasks
+    startTask("WebhookQueue", processWebhookQueue, 10)
+    startTask("StatisticsLogger", function()
+        if webhook.UseWebhooking and webhook.FishCaughtTracking then
+            local stats = getStatistics()
+            if stats.TotalCatches > 0 and stats.TotalCatches % 10 == 0 then
+                local fields = {
+                    {name = "Casts", value = tostring(stats.TotalCasts), inline = true},
+                    {name = "Catches", value = tostring(stats.TotalCatches), inline = true},
+                    {name = "Rate", value = string.format("%.1f%%", stats.CatchRate), inline = true}
+                }
+                sendWebhook("📊 Fishing Statistics", 
+                           string.format("Session update after %d catches", stats.TotalCatches), 
+                           0x3498DB, fields)
+            end
+        end
+    end, 30)
+    
+    -- Load configuration if available
     if settings.AutoLoadConfig then
-        -- Implementation would depend on how you store user configs
-        debugLog("Auto-loading user config...")
+        debugLog("Auto-loading configuration...")
+        -- Configuration loading logic would go here
     end
     
+    -- Welcome message
+    showNotification("Fisch Script", "v14.0.0 Titanesque Edition loaded!", 5, ui.Colors.Success)
+    
     debugLog("Fisch Script initialized successfully!")
+    debugLog("Event Status: %s", HttpService:JSONEncode(eventStatus))
+    
+    -- Send initialization webhook
+    if webhook.UseWebhooking then
+        local fields = {
+            {name = "Version", value = "14.0.0 Titanesque", inline = true},
+            {name = "Player", value = Player.Name, inline = true},
+            {name = "Events Available", value = tostring(#criticalEvents), inline = true}
+        }
+        sendWebhook("🚀 Script Initialized", 
+                   "Fisch Script has been successfully loaded and initialized!", 
+                   0x00FF00, fields)
+    end
 end
 
--- [ 🎬 SCRIPT EXECUTION 🎬 ]
--- Safe initialization
+-- [ 🎬 ENHANCED SCRIPT EXECUTION 🎬 ]
 local success, errorMsg = pcall(initialize)
 if not success then
     warn("[Fisch Script] Initialization failed: " .. errorMsg)
+    if webhook.UseWebhooking then
+        sendWebhook("❌ Initialization Error", 
+                   "Failed to initialize script: " .. errorMsg, 
+                   0xFF0000)
+    end
 end
 
--- Start the farm logic loop safely
+-- Start main task loops
 startTask("FarmLogic", function()
     local farmSuccess, farmError = pcall(farmLogic)
     if not farmSuccess then
         debugLog("Error in farm logic: %s", farmError)
     end
-end, 0.1)
+end, 0.15)
 
--- Start the crab logic loop safely
 startTask("CrabLogic", function()
     local crabSuccess, crabError = pcall(crabLogic)
     if not crabSuccess then
         debugLog("Error in crab logic: %s", crabError)
     end
-end, 1.0)
+end, 2.0)
 
--- Start the teleport logic loop safely
 startTask("TeleportLogic", function()
     local teleportSuccess, teleportError = pcall(teleportLogic)
     if not teleportSuccess then
         debugLog("Error in teleport logic: %s", teleportError)
     end
-end, 1.0)
+end, 2.0)
 
--- Example of enabling features (uncomment to activate by default)
--- toggleFeature("EnableFarming")
--- toggleFeature("AutoCast")
--- toggleFeature("AutoShake")
--- toggleFeature("AutoReel")
--- toggleFeature("SafeMode")
+-- Enhanced heartbeat for time-sensitive features
+RunService.Heartbeat:Connect(function()
+    if farm.EnableFarming and farm.AutoShake and farm.LockShakeMiddle then
+        -- Middle shake lock implementation
+        local shakeGui = PlayerGui:FindFirstChild("ShakeGui")
+        if shakeGui then
+            local shakeButton = shakeGui:FindFirstChild("ShakeButton")
+            if shakeButton and shakeButton.Visible then
+                local shakeBar = shakeGui:FindFirstChild("ShakeBar")
+                if shakeBar then
+                    local fillPercentage = shakeBar.Size.X.Scale
+                    if fillPercentage >= 0.45 and fillPercentage <= 0.55 then
+                        shakeButton.MouseButton1Click:Fire()
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Update notification display
+    for i = #ui.Notifications, 1, -1 do
+        local notification = ui.Notifications[i]
+        if tick() - notification.StartTime > notification.Duration then
+            table.remove(ui.Notifications, i)
+        end
+    end
+end)
 
--- Script shutdown handler
+-- Enhanced shutdown handler
 game:BindToClose(function()
     debugLog("Shutting down Fisch Script...")
     
-    -- Stop all running tasks
+    -- Send shutdown webhook
+    if webhook.UseWebhooking then
+        local stats = getStatistics()
+        local fields = {
+            {name = "Session Time", value = string.format("%.1f minutes", stats.SessionTime / 60), inline = true},
+            {name = "Total Catches", value = tostring(stats.TotalCatches), inline = true},
+            {name = "Catch Rate", value = string.format("%.1f%%", stats.CatchRate), inline = true}
+        }
+        sendWebhook("👋 Script Shutdown", 
+                   "Fisch Script session ended", 
+                   0xFFFF00, fields)
+    end
+    
+    -- Stop all tasks
     for taskName, _ in pairs(security.RunningTasks) do
         stopTask(taskName)
     end
     
-    -- Clean up any created instances
+    -- Clean up resources
     for _, sound in pairs(PlayerGui:GetChildren()) do
         if sound.Name:match("^Fisch_") then
             sound:Destroy()
@@ -746,16 +1423,17 @@ game:BindToClose(function()
     debugLog("Fisch Script shutdown complete!")
 end)
 
--- Heartbeat connection for critical real-time features
-RunService.Heartbeat:Connect(function()
-    -- This should only handle time-sensitive operations
-    -- Most logic should be in the task functions with appropriate delays
-    
-    -- Example: Implement the shake rod middle feature if needed
-    if farm.EnableFarming and farm.AutoShake and farm.LockShakeMiddle then
-        -- Implementation would depend on how the fishing UI works
-    end
-end)
+-- Show initialization complete message
+print("🎣 Fisch Script by Omega v14.0.0 - TITANESQUE EDITION loaded successfully!")
+print("🎮 Press F1 to toggle farming, F2 for crab cages, F3 for statistics")
+print("🔑 Press " .. settings.UIKeybind.Name .. " to toggle UI, \\ for navigation")
+print("🛡️ Enhanced security, webhooks, and smart farming enabled!")
+print("📊 Use printStatistics() to view detailed performance metrics")
 
--- Show init message
-print("🎣 Fisch Script by Omega v13.5.8 loaded! Press " .. settings.UIKeybind.Name .. " to toggle UI")
+-- Auto-enable some features for demonstration (commented out by default)
+-- toggleFeature("EnableFarming")
+-- toggleFeature("AutoCast")
+-- toggleFeature("AutoShake")
+-- toggleFeature("AutoReel")
+-- toggleFeature("SafeMode")
+-- toggleFeature("AntiDetection")
